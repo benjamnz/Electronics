@@ -17,7 +17,7 @@ int data=38;//Used for trouble shooting; connect an LED between pin 28 and GND
 int err=30;
 int eeprom=51;
 const int Noperations = 21;
-String operations[Noperations] = {"NOP", "INITIALIZE", "SET", "GET_DAC", "GET_ADC", "RAMP1", "RAMP2", "BUFFER_RAMP", "BUFFER_RAMP_DIS", "RESET", "TALK", "CONVERT_TIME", "*IDN?", "*RDY?", "GET_DUNIT","SET_DUNIT", "ADC_ZERO_SC_CAL", "ADC_CH_ZERO_SC_CAL", "ADC_CH_FULL_SC_CAL", "DAC_CH_CAL", "FULL_SCALE"};
+String operations[Noperations] = {"NOP", "INITIALIZE", "SET", "GET_DAC", "GET_ADC", "RAMP1", "RAMP2", "BUFFER_RAMP", "BUFFER_RAMP_DEC", "RESET", "TALK", "CONVERT_TIME", "*IDN?", "*RDY?", "GET_DUNIT","SET_DUNIT", "ADC_ZERO_SC_CAL", "ADC_CH_ZERO_SC_CAL", "ADC_CH_FULL_SC_CAL", "DAC_CH_CAL", "FULL_SCALE"};
 int initialized = 0;
 int delayUnit=0; // 0=microseconds 1=miliseconds
 
@@ -629,7 +629,7 @@ void bufferRamp(std::vector<String> DB)
   digitalWrite(data,LOW);
 }
 
-int bufferRampDis(std::vector<String> DB)
+int bufferRampDec(std::vector<String> DB)
 {
   String channelsDAC = DB[1];
   int NchannelsDAC = channelsDAC.length();
@@ -1033,7 +1033,7 @@ void router(std::vector<String> DB)
     break;
 
     case 8:
-    bufferRampDis(DB);
+    bufferRampDec(DB);
     Serial.println("BUFFER_RAMP_FINISHED");
     break;
 
