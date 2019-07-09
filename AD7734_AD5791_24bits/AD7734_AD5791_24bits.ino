@@ -16,8 +16,8 @@ int led=46;
 int data=38;//Used for trouble shooting; connect an LED between pin 28 and GND
 int err=30;
 int eeprom=51;
-const int Noperations = 21;
-String operations[Noperations] = {"NOP", "INITIALIZE", "SET", "GET_DAC", "GET_ADC", "RAMP1", "RAMP2", "BUFFER_RAMP", "BUFFER_RAMP_DEC", "RESET", "TALK", "CONVERT_TIME", "*IDN?", "*RDY?", "GET_DUNIT","SET_DUNIT", "ADC_ZERO_SC_CAL", "ADC_CH_ZERO_SC_CAL", "ADC_CH_FULL_SC_CAL", "DAC_CH_CAL", "FULL_SCALE"};
+const int Noperations = 22;
+String operations[Noperations] = {"NOP", "INITIALIZE", "SET", "GET_DAC", "GET_ADC", "RAMP1", "RAMP2", "BUFFER_RAMP", "BUFFER_RAMP_DEC", "RESET", "TALK", "CONVERT_TIME", "*IDN?", "*RDY?", "GET_DUNIT","SET_DUNIT", "ADC_ZERO_SC_CAL", "ADC_CH_ZERO_SC_CAL", "ADC_CH_FULL_SC_CAL", "DAC_CH_CAL", "FULL_SCALE", "TEST"};
 int initialized = 0;
 int delayUnit=0; // 0=microseconds 1=miliseconds
 
@@ -127,6 +127,19 @@ int indexOfOperation(String operation)
     }
   }
   return 0;
+}
+
+int maxValueVectorInt(std::vector<int> DB, int size)
+{
+  int max_value = 0;
+  for (int i = 0; i < size; i++)
+  {
+    if(DB[i] > max_value)
+    {
+      max_value=DB[i];
+    }
+  }
+  return max_value;
 }
 
 void waitDRDY() {while (digitalRead(drdy)==HIGH){}}
@@ -447,7 +460,7 @@ void readingRampAvg(int adcchan, byte b1, byte b2, byte b3, byte * o1, byte * o2
       {
         Serial.write(b1);                 // Sends previous reading while it is waiting for new reading
         Serial.write(b2);
-	Serial.write(b3);
+        Serial.write(b3);
         toSend = false;
       }
       waitDRDY();                       // Waits until convertion finishes
@@ -635,68 +648,94 @@ int bufferRampDec(std::vector<String> DB)
   int NchannelsDAC = channelsDAC.length();
   String channelsADC = DB[2];
   int NchannelsADC = channelsADC.length();
-  int nAdcSteps = DB[NchannelsDAC*2+6].toInt();
-  int nSteps=(DB[NchannelsDAC*2+3].toInt());
+  int nSteps=(DB[NchannelsDAC*4+3].toInt());
   
   std::vector<float> vi;
   std::vector<float> vf;
+  std::vector<int> min_nSteps;
+  std::vector<int> min_delay;
   float v_min = -1*DAC_FULL_SCALE;
   float v_max = DAC_FULL_SCALE;
   for(int i = 3; i < NchannelsDAC+3; i++)
   {
-    vi.push_back(DB[i].toFloat());
-    vf.push_back(DB[i+NchannelsDAC].toFloat());
+    float vii = DB[i].toFloat();
+    float vif = DB[i+NchannelsDAC].toFloat();
+    float max_step_size = DB[i+2*NchannelsDAC].toFloat();
+    float max_rate = DB[i+3*NchannelsDAC].toFloat();
+    vi.push_back(vii);
+    vf.push_back(vif);
+    float min_nStepi=abs((int)((vif-vii)/(nSteps*max_step_size)));
+    min_nSteps.push_back(min_nStepi);
+    min_delay.push_back(abs((int)((vif-vii)/(nSteps*min_nStepi*max_rate*1000))));
   }
+  int largest_min_nSteps = maxValueVectorInt(min_nSteps, NchannelsDAC);
+  int largest_min_delay = maxValueVectorInt(min_delay, NchannelsDAC);
+  
   byte b1;
   byte b2;
   byte b3;
   int count =0;
-  int adcCount = 1;
-  bool firstPoint = true;
   for (int j=0; j<nSteps;j++)
   {
     digitalWrite(data,HIGH);
-    for(int i = 0; i < NchannelsDAC; i++)
+    for(int k = 0; k < largest_min_nSteps; k++)
     {
-      float v;
-      v = vi[i]+(vf[i]-vi[i])*j/(nSteps-1);
-      if(v<v_min)
+      for(int i = 0; i < NchannelsDAC; i++)
       {
-        v=v_min;
+        float v_k;
+        float v_target;
+        float v_previous;
+        v_target = vi[i]+(vf[i]-vi[i])*j/(nSteps-1);
+        v_previous = vi[i]+(vf[i]-vi[i])*(j-1)/(nSteps-1);
+
+        if(j==0)
+        {
+          v_previous = 0;
+        }
+
+        if(largest_min_nSteps<2)
+        {
+          v_k = v_target;
+        }
+        else
+        {
+          v_k = v_previous + (v_target-v_previous)*k/(largest_min_nSteps-1);
+        }
+	
+        if(v_k<v_min)
+        {
+          v_k=v_min;
+        }
+        else if(v_k>v_max)
+        {
+          v_k=v_max;
+        }
+        writeDAC_buffer(channelsDAC[i]-'0',v_k);
       }
-      else if(v>v_max)
+      digitalWrite(ldac,LOW);
+      digitalWrite(ldac,HIGH);
+      if (largest_min_delay < 1)
       {
-        v=v_max;
-      }
-      writeDAC_buffer(channelsDAC[i]-'0',v);
-    }
-    digitalWrite(ldac,LOW);
-    digitalWrite(ldac,HIGH);
-    if (delayUnit)
-    {
-      delay(DB[NchannelsDAC*2+4].toInt());
-    }
-    else
-    {
-      delayMicroseconds(DB[NchannelsDAC*2+4].toInt());
-    }
-    if ((adcCount == nAdcSteps) || firstPoint)
-    {
-      for(int i = 0; i < NchannelsADC; i++)
-      {
-        rampRead(channelsADC[i]-'0', b1, b2, b3, &b1, &b2, &b3, count,DB[NchannelsDAC*2+5].toInt());
-        count+=1;
-      }
-      if(firstPoint)
-      {
-        firstPoint = false;
+        delay(1);
       }
       else
       {
-        adcCount=0;
+        delay(largest_min_delay);
       }
     }
-    adcCount+=1;
+    if (delayUnit)
+    {
+      delay(DB[NchannelsDAC*4+4].toInt());
+    }
+    else
+    {
+      delayMicroseconds(DB[NchannelsDAC*4+4].toInt());
+    }
+    for(int i = 0; i < NchannelsADC; i++)
+    {
+      rampRead(channelsADC[i]-'0', b1, b2, b3, &b1, &b2, &b3, count,DB[NchannelsDAC*4+5].toInt());
+      count+=1;
+    }
     if(Serial.available())
     {
       std::vector<String> comm;
@@ -976,6 +1015,18 @@ void debug()
   delay(3000);
 }
 
+void test_debug()
+{
+  int max_value;
+  std::vector<int> a;
+  a.push_back(3);
+  a.push_back(34);
+  a.push_back(21);
+  a.push_back(1);
+  max_value = maxValueVectorInt(a, 4);
+  Serial.println(max_value);
+}
+
 void router(std::vector<String> DB)
 {
   float v;
@@ -1087,6 +1138,10 @@ void router(std::vector<String> DB)
     case 20:
     DAC_FULL_SCALE = DB[1].toFloat();
     Serial.println("FULL_SCALE_UPDATED");
+    break;
+
+    case 21:
+    test_debug();
     break;
     
     default:
