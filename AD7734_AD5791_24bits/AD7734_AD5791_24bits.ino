@@ -690,7 +690,8 @@ int bufferRampDec(std::vector<String> DB)
 
         if(j==0)
         {
-          v_previous = 0;
+          writeDAC_buffer(channelsDAC[i]-'0',vi[i]);
+          continue;
         }
 
         if(largest_min_nSteps<2)
