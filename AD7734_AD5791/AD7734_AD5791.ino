@@ -796,7 +796,7 @@ void normalMode()
 
 void ID()
 {
-  Serial.println("DAC-ADC_AD7734-AD5780");
+  Serial.println("DAC-ADC_AD7734-AD5791");
 }
 
 void RDY()
