@@ -90,16 +90,19 @@ float get_percent(){
   return(sensorValue);
 }
 
-void turn_outlet_on(){
+int turn_outlet_on(){
   digitalWrite(outletSwitchPin, HIGH);
+  return 0;
 }
 
-void turn_outlet_off(){
+int turn_outlet_off(){
   digitalWrite(outletSwitchPin, LOW);
+  return 0;
 }
 
 void router()
 {
+  int result;
   int operation = indexOfOperation(comm[0]);
   switch ( operation )
   {
@@ -123,11 +126,13 @@ void router()
     break;
 
     case 4:
-    turn_outlet_on();
+    result = turn_outlet_on();
+    Serial.println(result);
     break;
 
     case 5:
-    turn_outlet_off();
+    result = turn_outlet_off();
+    Serial.println(result);
     break;
 
     case 6:
