@@ -825,38 +825,53 @@ void normalMode()
   for( int i = 0; i <= Ndacs-1; i++)
   {
     int o;
-    for(int j=0; j<=3; j++)
+    digitalWrite(dac[i],LOW);
+    SPI.transfer(spi,160);
+    SPI.transfer(spi,0);
+    SPI.transfer(spi,0);
+    digitalWrite(dac[i],HIGH);
+    delayMicroseconds(1);
+    digitalWrite(dac[i],LOW);
+    SPI.transfer(spi,0);
+    SPI.transfer(spi,0);
+    o = SPI.transfer(spi,0);
+    digitalWrite(dac[i],HIGH);
+
+    if (o!=2)
     {
-      dacDataSend(dac[i],0);
-      digitalWrite(dac[i],LOW);
-      SPI.transfer(spi,32);
-      SPI.transfer(spi,0);
-      SPI.transfer(spi,2);
-      digitalWrite(dac[i],HIGH);
-  
-      digitalWrite(dac[i],LOW);
-      SPI.transfer(spi,160);
-      SPI.transfer(spi,0);
-      SPI.transfer(spi,0);
-      digitalWrite(dac[i],HIGH);
-      delayMicroseconds(1);
-      digitalWrite(dac[i],LOW);
-      SPI.transfer(spi,0);
-      SPI.transfer(spi,0);
-      o = SPI.transfer(spi,0);
-      digitalWrite(dac[i],HIGH);
-    }
+      for(int j=0; j<=3; j++)
+      {
+        dacDataSend(dac[i],0);
+        digitalWrite(dac[i],LOW);
+        SPI.transfer(spi,32);
+        SPI.transfer(spi,0);
+        SPI.transfer(spi,2);
+        digitalWrite(dac[i],HIGH);
     
-    if (attemps>=5)
-    {
-      Serial.print("ERROR INITIALIZING DAC");
-      Serial.println(i);
+        digitalWrite(dac[i],LOW);
+        SPI.transfer(spi,160);
+        SPI.transfer(spi,0);
+        SPI.transfer(spi,0);
+        digitalWrite(dac[i],HIGH);
+        delayMicroseconds(1);
+        digitalWrite(dac[i],LOW);
+        SPI.transfer(spi,0);
+        SPI.transfer(spi,0);
+        o = SPI.transfer(spi,0);
+        digitalWrite(dac[i],HIGH);
+      }
+      
+      if (attemps>=5)
+      {
+        Serial.print("ERROR INITIALIZING DAC");
+        Serial.println(i);
+      }
+      else if (o!=2)
+      {
+        i=i-1;
+        attemps++;
+      }
     }
-    else if (o!=2)
-    {
-      i=i-1;
-      attemps++;
-    };
   }
   digitalWrite(data,LOW);
 }
