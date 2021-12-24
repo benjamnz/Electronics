@@ -820,6 +820,8 @@ void readDAC(int channelDAC)
 
 void normalMode()
 {
+  SPI.transfer(spi,0); // The first spi transfer is nonsense sometimes
+  delayMicroseconds(30);
   digitalWrite(data,HIGH);
   int attemps = 0;
   for( int i = 0; i <= Ndacs-1; i++)
