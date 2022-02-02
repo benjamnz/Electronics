@@ -998,7 +998,7 @@ void dac_ch_cal()
     GE[i]=1; // gain error
   }
   //set dacs to zero volts
-  for(int i=0; i<=3; i++)
+  for(int i=0; i<=Ndacs-1; i++)
   {
     dacDataSend(dac[i],0);
   }
