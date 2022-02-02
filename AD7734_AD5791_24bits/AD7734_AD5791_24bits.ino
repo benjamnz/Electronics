@@ -841,7 +841,7 @@ void normalMode()
 
     if (o!=2)
     {
-      for(int j=0; j<=3; j++)
+      for(int j=0; j<= Ndacs-1; j++)
       {
         dacDataSend(dac[i],0);
         digitalWrite(dac[i],LOW);
