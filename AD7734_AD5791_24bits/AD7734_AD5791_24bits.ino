@@ -992,7 +992,7 @@ void adc_ch_full_scale_cal()
 
 void dac_ch_cal()
 {
-  for(int i=0; i<=3; i++)
+  for(int i=0; i<=Ndacs-1; i++)
   {
     OS[i]=0; // offset error
     GE[i]=1; // gain error
@@ -1004,20 +1004,20 @@ void dac_ch_cal()
   }
   delay(1);
   //reads the offset of each channel
-  for(int i=0; i<=3; i++)
+  for(int i=0; i<=Ndacs-1; i++)
   {
     OS[i]=readADC(i);
   }
   
   //set dacs to 9 volts
   float ifs = 9;
-  for(int i=0; i<=3; i++)
+  for(int i=0; i<=Ndacs-1; i++)
   {
     dacDataSend(dac[i],ifs);
   }
   delay(1);
   //reads each channel and calculates the gain error
-  for(int i=0; i<=3; i++)
+  for(int i=0; i<=Ndacs-1; i++)
   {
     float nfs;
     nfs=readADC(i);
