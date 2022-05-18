@@ -13,7 +13,7 @@ int ldac=50; //Load DAC pin for DAC. Make it LOW if not in use.
 int reset=24; //Reset on ADC
 int drdy=28; // Data is ready pin on ADC
 int led=46;
-int data=38;//Used for trouble shooting; connect an LED between pin 28 and GND
+int data=38; //Used for trouble shooting; connect an LED between pin 28 and GND
 int err=30;
 int eeprom=51;
 const int Noperations = 22;
@@ -21,9 +21,12 @@ String operations[Noperations] = {"NOP", "INITIALIZE", "SET", "GET_DAC", "GET_AD
 int initialized = 0;
 int delayUnit=0; // 0=microseconds 1=miliseconds
 
+SPISettings adcset(115200, MSBFIRST, SPI_MODE3);
+SPISettings dacset(115200, MSBFIRST, SPI_MODE1);
+
 float DAC_FULL_SCALE = 10.0;
 
-// Calibration constans
+// Calibration constants
 float OS[4]={0,0,0,0}; // offset error
 float GE[4]={1,1,1,1}; // gain error
 
@@ -39,7 +42,7 @@ std::vector<String> query_serial()
       received = Serial.read();
       if (received == '\n' || received == ' ')
       {}
-      else if (received == ',' || received == '\r')
+      else if (received == ',' || received == '\r') //Required: input separated by commas
       {
         comm.push_back(inByte);
         inByte = "";
@@ -53,6 +56,7 @@ std::vector<String> query_serial()
   return comm;
 }
 
+// To avoid errors when using vectors
 namespace std {
   void __throw_bad_alloc()
   {
@@ -72,8 +76,8 @@ void setup()
   pinMode(ldac,OUTPUT);   
   digitalWrite(ldac,HIGH); //Load DAC pin for DAC. Make it LOW if not in use. 
   pinMode(reset, OUTPUT);
-  pinMode(drdy, INPUT);  //Data ready pin for the ADC.  
-  pinMode(led, OUTPUT);  //Used for blinking indicator LED
+  pinMode(drdy, INPUT); //Data ready pin for the ADC.  
+  pinMode(led, OUTPUT); //Used for blinking indicator LED
   digitalWrite(led, HIGH);
   pinMode(data, OUTPUT);
   pinMode(eeprom, OUTPUT);
@@ -87,8 +91,11 @@ void setup()
     digitalWrite(dac[i],HIGH);
   }
 
+	
+  
+	  
   digitalWrite(reset,HIGH);  digitalWrite(data,LOW); digitalWrite(reset,LOW);  digitalWrite(data,HIGH); delay(5);  digitalWrite(reset,HIGH);  digitalWrite(data,LOW);//Resets ADC on startup.  
-
+  
   SPI.begin(adc); // wake up the SPI bus for ADC
   SPI.begin(spi); // wake up the SPI bus for ADC
   
