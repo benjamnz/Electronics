@@ -1,19 +1,19 @@
-//Ardunio *DUE*code for controlling EVAL-AD7734 ADC and EVAL-AD5791 DAC
-//Andrea Young
-//Carlos Kometter
-//3/23/2018
+// Ardunio *DUE*code for controlling EVAL-AD7734 ADC and EVAL-AD5791 DAC
+// Andrea Young
+// Carlos Kometter
+// 3/23/2018
 #include "SPI.h" // necessary library for SPI communication
 #include <vector>
-int adc=10; //The SPI pin for the ADC
+int adc=10; // The SPI pin for the ADC
 int adc_sync=32;
 const int Ndacs = 2;
-int dac[Ndacs]={11,8};  //The SPI pin for the DAC
+int dac[Ndacs]={11,8};  // The SPI pin for the DAC
 int spi=52;
-int ldac=50; //Load DAC pin for DAC. Make it LOW if not in use. 
-int reset=24; //Reset on ADC
+int ldac=50; // Load DAC pin for DAC. Make it LOW if not in use. 
+int reset=24; // Reset on ADC
 int drdy=28; // Data is ready pin on ADC
 int led=46;
-int data=38; //Used for trouble shooting; connect an LED between pin 28 and GND
+int data=38; // Used for trouble shooting; connect an LED between pin 28 and GND
 int err=30;
 int eeprom=51;
 const int Noperations = 22;
@@ -30,6 +30,7 @@ float DAC_FULL_SCALE = 10.0;
 float OS[4]={0,0,0,0}; // offset error
 float GE[4]={1,1,1,1}; // gain error
 
+// Looks for comma-separated values in input
 std::vector<String> query_serial()
 {
   char received;
@@ -42,7 +43,7 @@ std::vector<String> query_serial()
       received = Serial.read();
       if (received == '\n' || received == ' ')
       {}
-      else if (received == ',' || received == '\r') //Required: input separated by commas
+      else if (received == ',' || received == '\r')
       {
         comm.push_back(inByte);
         inByte = "";
@@ -74,10 +75,10 @@ void setup()
 {
   Serial.begin(115200);
   pinMode(ldac,OUTPUT);   
-  digitalWrite(ldac,HIGH); //Load DAC pin for DAC. Make it LOW if not in use. 
+  digitalWrite(ldac,HIGH); // Load DAC pin for DAC. Make it LOW if not in use. 
   pinMode(reset, OUTPUT);
-  pinMode(drdy, INPUT); //Data ready pin for the ADC.  
-  pinMode(led, OUTPUT); //Used for blinking indicator LED
+  pinMode(drdy, INPUT); // Data ready pin for the ADC.  
+  pinMode(led, OUTPUT); // Used for blinking indicator LED
   digitalWrite(led, HIGH);
   pinMode(data, OUTPUT);
   pinMode(eeprom, OUTPUT);
@@ -91,20 +92,21 @@ void setup()
     digitalWrite(dac[i],HIGH);
   }
 
-	
   
-	  
-  digitalWrite(reset,HIGH);  digitalWrite(data,LOW); digitalWrite(reset,LOW);  digitalWrite(data,HIGH); delay(5);  digitalWrite(reset,HIGH);  digitalWrite(data,LOW);//Resets ADC on startup.  
+  //Resets ADC on startup.  	  
+  digitalWrite(reset,HIGH);  digitalWrite(data,LOW); digitalWrite(reset,LOW);  digitalWrite(data,HIGH); 
+  delay(5);
+  digitalWrite(reset,HIGH);  digitalWrite(data,LOW); 
   
   SPI.begin(adc); // wake up the SPI bus for ADC
   SPI.begin(spi); // wake up the SPI bus for ADC
   
-  SPI.setBitOrder(adc,MSBFIRST); //correct order for AD7734.
-  SPI.setBitOrder(spi,MSBFIRST); //correct order for AD5764.
+  SPI.setBitOrder(adc,MSBFIRST); // required for AD7734.
+  SPI.setBitOrder(spi,MSBFIRST); // required for AD5764.
   SPI.setClockDivider(adc,84);  
   SPI.setClockDivider(spi,84);  
-  SPI.setDataMode(adc,SPI_MODE3); //This should be 3 for the AD7734
-  SPI.setDataMode(spi,SPI_MODE1); //This should be 1 for the AD5764
+  SPI.setDataMode(adc,SPI_MODE3); // MODE3 for AD7734
+  SPI.setDataMode(spi,SPI_MODE1); // MODE1 for AD5764
 
   // Disables DAC_SDO to avoid interference with ADC
 //  SPI.transfer(dac,1,SPI_CONTINUE);
@@ -151,7 +153,7 @@ int maxValueVectorInt(std::vector<int> DB, int size)
 
 void waitDRDY() {while (digitalRead(drdy)==HIGH){}}
 
-void resetADC() //Resets the ADC, and sets the range to default +-10 V 
+void resetADC() // Resets the ADC, and sets the range to default +-10 V 
 {
   SPI.transfer(adc,0);
   digitalWrite(data,HIGH);digitalWrite(reset,HIGH);digitalWrite(reset,LOW);digitalWrite(reset,HIGH);
@@ -169,7 +171,7 @@ void resetADC() //Resets the ADC, and sets the range to default +-10 V
   digitalWrite(adc_sync, HIGH);
 }
 
-void talkADC(std::vector<String> DB)
+void talkADC(std::vector<String> DB) // Init communication with ADC
 {
   int comm;
   SPI.transfer(adc,0);
@@ -199,7 +201,7 @@ void writeADCConversionTime(std::vector<String> DB)
   SPI.transfer(adc,0x70+adcChannel);
   digitalWrite(adc_sync, HIGH);
   digitalWrite(adc_sync, LOW);
-  cr=SPI.transfer(adc,0); //Read back the CT register
+  cr=SPI.transfer(adc,0); // Read back the CT register
   digitalWrite(adc_sync, HIGH);
 
   int convtime = ((int)(((cr&127)*128+249)/6.144)+0.5);
@@ -211,12 +213,12 @@ float map2(float x, long in_min, long in_max, float out_min, float out_max) //fl
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-int threeByteToIntAdc(byte DB1,byte DB2, byte DB3) // This gives a 24 bit integer (between 0 - 2^24)
+int threeByteToIntAdc(byte DB1,byte DB2, byte DB3) // Returns a 24-bit integer (between 0 - 2^24)
 {
   return ((int)(((DB1<<8)| DB2)<<8)|DB3);
 }
 
-int twoByteToInt(byte DB1,byte DB2) // This gives a 16 bit integer (between +/- 2^16)
+int twoByteToInt(byte DB1,byte DB2) // Returns a 16-bit integer (between +/- 2^16)
 {
   return ((int)((DB1<<8)| DB2));
 }
@@ -286,26 +288,26 @@ float getSingleReading(int adcchan)
   {
     SPI.transfer(adc,0);
     digitalWrite(adc_sync, LOW);
-    SPI.transfer(adc,0x38+adcchan);   // Indicates comm register to access mode register with channel
+    SPI.transfer(adc,0x38+adcchan);  // Indicates comm register to access mode register with channel
     digitalWrite(adc_sync, HIGH);
     digitalWrite(adc_sync, LOW);
-    SPI.transfer(adc,0x4A);           // Indicates mode register to start single convertion in dump mode
+    SPI.transfer(adc,0x4A);          // Indicates mode register to start single convertion in dump mode
     digitalWrite(adc_sync, HIGH);
-    waitDRDY();                       // Waits until convertion finishes
+    waitDRDY();                      // Waits until convertion finishes
     digitalWrite(adc_sync, LOW);
-    SPI.transfer(adc,0x48+adcchan);   // Indcates comm register to read data channel data register
+    SPI.transfer(adc,0x48+adcchan);  // Indicates comm register to read data channel data register
     digitalWrite(adc_sync, HIGH);
     digitalWrite(adc_sync, LOW);
-    statusbyte=SPI.transfer(adc,0);   // Reads Channel 'ch' status
+    statusbyte=SPI.transfer(adc,0);  // Reads Channel 'ch' status
     digitalWrite(adc_sync, HIGH);
     digitalWrite(adc_sync, LOW);
     o1=SPI.transfer(adc,0);
     digitalWrite(adc_sync, HIGH);
     digitalWrite(adc_sync, LOW);
-    o2=SPI.transfer(adc,0);           // Reads first byte
+    o2=SPI.transfer(adc,0);          // Reads first byte
     digitalWrite(adc_sync, HIGH);
     digitalWrite(adc_sync, LOW);
-    o3=SPI.transfer(adc,0);           // Reads second byte
+    o3=SPI.transfer(adc,0);          // Reads second byte
     digitalWrite(adc_sync, HIGH);
     ovr=statusbyte&1;
     switch (ovr)
@@ -348,7 +350,7 @@ float readADC(byte DB)
   }
 }
 
-int threeByteToInt(byte DB1,byte DB2, byte DB3) // This gives a 16 bit integer (between +/- 2^16)
+int threeByteToInt(byte DB1,byte DB2, byte DB3) // Reeturns a 16 bit integer (between +/- 2^16)
 {
   return ((int)(((((DB1&15)<<8)| DB2)<<8)|DB3));
 }
@@ -478,10 +480,10 @@ void readingRampAvg(int adcchan, byte b1, byte b2, byte b3, byte * o1, byte * o2
       statusbyte=SPI.transfer(adc,0);   // Reads Channel 'ch' status
       digitalWrite(adc_sync, HIGH);
       digitalWrite(adc_sync, LOW);
-      db1=SPI.transfer(adc,0);           // Reads first byte
+      db1=SPI.transfer(adc,0);          // Reads first byte
       digitalWrite(adc_sync, HIGH);
       digitalWrite(adc_sync, LOW);
-      db2=SPI.transfer(adc,0);           // Reads second byte
+      db2=SPI.transfer(adc,0);          // Reads second byte
       digitalWrite(adc_sync, HIGH);
       digitalWrite(adc_sync, LOW);
       db3=SPI.transfer(adc,0);
